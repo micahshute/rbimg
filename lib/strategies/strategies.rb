@@ -1,0 +1,3 @@
+class Rbimg::Strategies
+
+end
