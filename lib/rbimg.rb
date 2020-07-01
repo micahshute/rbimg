@@ -1,5 +1,4 @@
 require_relative "./rbimg/version"
-require 'require_all'
 require 'byteman'
 require 'zlib'
 
@@ -8,7 +7,8 @@ module Rbimg
   # Your code goes here...
 end
 
-require_all 'lib/errors'
+require_relative './errors/crc_error'
+require_relative './errors/format_error'
 require_relative './strategies/strategies'
-require_all 'lib/strategies'
-require_all 'lib/image_types'
+require_relative './strategies/crc_strategies/crc_table_lookup_strategy'
+require_relative './image_types/png'

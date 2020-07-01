@@ -9,5 +9,7 @@ task :default => :spec
 
 desc "Open interactive console for this project"
 task :console do 
+    require 'pry'
+    require_relative './lib/rbimg'
     Pry.start
 end
