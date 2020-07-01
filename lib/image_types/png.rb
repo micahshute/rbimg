@@ -39,8 +39,9 @@ class Rbimg::PNG
                     chunks << Chunk.readIHDR(data[chunk_start...chunk_end])
                 when "IDAT"
                     chunks << Chunk.readIDAT(data[chunk_start...chunk_end])
+                when "PLTE"
+                    chunks << Chunk.readPLTE(data[chunk_start...chunk_end])
                 else
-                    # binding.pry
                     chunks << data[chunk_start...chunk_end]
                 end
 
@@ -75,12 +76,15 @@ class Rbimg::PNG
                 raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
             end
             pixels = pixels_and_filter.filter.with_index{ |_,i| i % (pixel_width + 1) != 0}
-            
-            new(pixels: pixels, type: color_type, width: width, height: height, bit_depth: bit_depth)
-        rescue
+            args = {pixels: pixels, type: color_type, width: width, height: height, bit_depth: bit_depth}
+            plte = chunks.find{|c| c[:type] == "PLTE" unless c.is_a?(Array)}
+            args[:palette] = plte[:chunk_data] if plte
+            new(**args)
+        rescue 
             raise Rbimg::FormatError.new("This PNG file is not in the correct format or has been corrupted")
         end
     end
+
     
     attr_reader :pixels, :width, :height, :bit_depth, :compression_method, :filter_method, :interlace_method
 
@@ -89,7 +93,7 @@ class Rbimg::PNG
         @bit_depth = bit_depth
         @type = type.is_a?(Integer) ? type : COLOR_TYPES[type]
         raise ArgumentError.new("#{type} is not a valid color type. Please use one of: #{COLOR_TYPES.keys}") if type.nil?
-        raise ArgumentError.new("Palettes are not compatible with color types 0 and 4") if @type == 0 || @type == 4
+        raise ArgumentError.new("Palettes are not compatible with color types 0 and 4") if palette && (@type == 0 || @type == 4)
         raise ArgumentError.new("palette must be an array") if palette && !palette.is_a?(Array)
         @signature = [137, 80, 78, 71, 13, 10, 26, 10]
         @chunks = [
@@ -138,14 +142,22 @@ class Rbimg::PNG
 
     class Chunk
 
-        def self.readIHDR(bytes)
+        def self.readChunk(bytes)
             bytes = bytes.bytes if bytes.is_a?(String)
-            raise ArgumentError.new("IHDR must be 25 bytes long") if bytes.length != 25
-            crc = bytes[-4..-1]
- 
             data = {}
             data[:length] = Byteman.buf2int(bytes[0...4])
             data[:type] = Byteman.buf2hex(bytes[4...8])
+            data[:crc] = bytes[-4..-1]
+            data[:chunk_data] = bytes[8...(8 + data[:length])]
+            raise Rbimg::CRCError.new("CRC does not match expected") if !crc_valid?(type: data[:type].unpack("C*"), data: data[:chunk_data], crc: data[:crc])
+            data
+        end
+
+        def self.readIHDR(bytes)
+            bytes = bytes.bytes if bytes.is_a?(String)
+            raise ArgumentError.new("IHDR must be 25 bytes long") if bytes.length != 25
+ 
+            data = readChunk(bytes)
             data[:width] = Byteman.buf2int(bytes[8...12])
             data[:height] = Byteman.buf2int(bytes[12...16])
             data[:bit_depth] = bytes[16]
@@ -153,19 +165,17 @@ class Rbimg::PNG
             data[:compression_method] = bytes[18]
             data[:filter_method] = bytes[19]
             data[:interlace_method] = bytes[20]
-
-            chunk_data = bytes[8...21]
-            raise Rbimg::CRCError.new("CRC does not match expected") if !crc_valid?(type: data[:type].unpack("C*"), data: chunk_data, crc: crc)
             data
         end
 
         def self.readIDAT(bytes)
-            bytes = bytes.bytes if bytes.is_a?(String)
-            data = {}
-            data[:length] = Byteman.buf2int(bytes[0...4])
-            data[:type] = Byteman.buf2hex(bytes[4...8])
-            data[:compressed_pixels] = bytes[8...(data[:length] + 8)]
+            data = readChunk(bytes)
+            data[:compressed_pixels] = data[:chunk_data]
             data
+        end
+
+        def self.readPLTE(bytes)
+            readChunk(bytes)
         end
 
         def self.crc_valid?(type:, data:, crc:)

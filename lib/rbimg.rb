@@ -1,7 +1,8 @@
-require "rbimg/version"
+require_relative "./rbimg/version"
 require 'require_all'
 require 'byteman'
 require 'zlib'
+
 module Rbimg
   class Error < StandardError; end
   # Your code goes here...

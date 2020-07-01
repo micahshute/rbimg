@@ -1,8 +1,101 @@
 # Rbimg
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rbimg`. To experiment with that code, run `bin/console` for an interactive prompt.
+Allows simple creation and reading of images (currently only PNG images).
 
-TODO: Delete this and the text above, and describe your gem
+Supports all required chunk types (IHDR, PLTE, IDAT, IEND)
+
+Filtering is not currently supported.
+
+This gem is primarily for simple manipulation of images using pixel data.
+
+You can easily write images from an array of pixel data, and retrieve pixel data from a PNG image.
+
+Examples: 
+
+Write simple 100x100 green-blue image
+
+```ruby
+pixels = []
+100.times do
+    pixels << Array.new(100, [0,255,255])
+end
+png = Rbimg::PNG.new(pixels: pixels.flatten, type: :rgb, width: 100, height: 100)
+png.write(path: './green-blue')
+```
+
+Write simple 500x500 half blue half red rgba image
+
+```ruby
+pixels = []
+500.times do |row|
+    if row >= 250
+        pixels << Array.new(500, [0,0,255,127])
+    else
+        pixels << Array.new(500, [255,0,0,127])
+    end
+end
+png = Rbimg::PNG.new(pixels: pixels.flatten, type: :rgba, width: 500, height: 500)
+png.write(path: './blue-red-alpha')
+```
+
+Write simple 300x500 half white half black greyscale image
+
+```ruby
+pixels = []
+500.times do |row|
+    if row >= 250
+        pixels << Array.new(300, 255)
+    else
+        pixels << Array.new(300, 0)
+    end
+end
+png = Rbimg::PNG.new(pixels: pixels.flatten, type: :greyscale, width: 300, height: 500)
+png.write(path: './greyscale')
+```
+
+Write a greyscale-alpha version of the image above
+
+```ruby
+pixels = []
+500.times do |row|
+    if row >= 250
+        pixels << Array.new(300, [255,175])
+    else
+        pixels << Array.new(300, [0,175])
+    end
+end
+png = Rbimg::PNG.new(pixels: pixels.flatten, type: :greyscale_alpha, width: 300, height: 500)
+png.write(path: './greyscale_alpha')
+```
+Write a greyscale image from the MSNT dataset:
+
+```ruby
+img_data = File.read("./data/t10k-images-idx3-ubyte").bytes
+mag_num = img_data[0...4]
+num_imgs = img_data[4...8]
+num_rows = img_data[8...12]
+num_cols = img_data[12...16]
+pixels = img_data[16...(16 + 784)]
+png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: 28, height: 28)
+png.write(path: 'mnst_test')
+```
+
+Read a PNG image and get the pixel array from a path
+
+```ruby
+png = Rbimg::PNG.read(path: './data/smiley.png')
+puts png.pixels
+```
+
+Read a PNG image and get the pixel array from raw data
+
+```ruby
+data = File.read('./data/smiley.png')
+png = Rbimg::PNG.read(data: data)
+puts png.pixels
+```
+
+
 
 ## Installation
 

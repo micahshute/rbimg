@@ -1,7 +1,32 @@
 RSpec.describe Rbimg::PNG do 
 
-  it "can create a valid pallet PNG img" do 
-    
+  it "can read a valid pallet PNG img" do 
+    png = Rbimg::PNG.read(path: './data/palette.png')
+    expect(png).to be_a(Rbimg::PNG)
+  end
+
+  it "can write a pallet PNG img" do
+    png = Rbimg::PNG.read(path: './data/palette.png')
+    if File.exist?(Dir.pwd + '/palette.png')
+      File.delete('./palette.png')
+    end
+    png.write(path: "./palette.png")
+    expect(File.exist?(Dir.pwd + '/palette.png')).to eq(true)
+  end
+
+  it "can create a png image from the MSNT image data" do
+    img_data = File.read("./data/t10k-images-idx3-ubyte").bytes
+    mag_num = img_data[0...4]
+    num_imgs = img_data[4...8]
+    num_rows = img_data[8...12]
+    num_cols = img_data[12...16]
+    pixels = img_data[16...(16 + 784)]
+    png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: 28, height: 28)
+    if File.exist?(Dir.pwd + '/msnt.png')
+      File.delete(Dir.pwd + '/msnt.png')
+    end
+    png.write(path: "./msnt")
+    expect(File.exist?(Dir.pwd + '/msnt.png')).to eq(true)
   end
 
   it "creates a valid rgb PNG img" do
@@ -14,11 +39,11 @@ RSpec.describe Rbimg::PNG do
       end
     end
     png = Rbimg::PNG.new(pixels: pixels.flatten, type: :rgb, width: 1000, height: 1000)
-    if Dir.exist?('./rgb_striped.png')
-      File.delete('./rgb_striped.png')
+    if File.exist?(Dir.pwd + '/rgb_striped.png')
+      File.delete(Dir.pwd + '/rgb_striped.png')
     end
-    # png.write(path: "./rgb_striped")
-    expect(Dir.exist?('./rgb_striped.png')).to eq(true)
+    png.write(path: "./rgb_striped")
+    expect(File.exist?(Dir.pwd + '/rgb_striped.png')).to eq(true)
   end
 
   it 'can create a valid greyscale PNG img' do 
@@ -31,8 +56,11 @@ RSpec.describe Rbimg::PNG do
       end
     end
     png = Rbimg::PNG.new(pixels: pixels.flatten, type: :greyscale, width: 1000, height: 1000)
-    png.write(path: "greyscale_striped")
-    expect(true).to eq(false)
+    if File.exist?(Dir.pwd + '/greyscale_striped.png')
+      File.delete(Dir.pwd + '/greyscale_striped.png')
+    end
+    png.write(path: "./greyscale_striped")
+    expect(File.exist?(Dir.pwd + '/greyscale_striped.png')).to eq(true)
   end
 
   it 'can create a valid rgba PNG img' do 
@@ -45,8 +73,11 @@ RSpec.describe Rbimg::PNG do
       end
     end
     png = Rbimg::PNG.new(pixels: pixels.flatten, type: :rgba, width: 1000, height: 1000)
-    png.write(path: "rgba_striped")
-    expect(true).to eq(false)
+    if File.exist?(Dir.pwd + '/rgba_striped.png')
+      File.delete(Dir.pwd + '/rgba_striped.png')
+    end
+    png.write(path: "./rgba_striped")
+    expect(File.exist?(Dir.pwd + '/rgba_striped.png')).to eq(true)
   end
 
   it 'can create a valid greyscale alpha PNG img' do 
@@ -59,9 +90,11 @@ RSpec.describe Rbimg::PNG do
       end
     end
     png = Rbimg::PNG.new(pixels: pixels.flatten, type: :greyscale_alpha, width: 1000, height: 1000)
-    png.write(path: "greyscale_alpha_striped")
-    # binding.pry
-    expect(true).to eq(false)
+    if File.exist?(Dir.pwd + '/greyscale_alpha_striped.png')
+      File.delete(Dir.pwd + '/greyscale_alpha_striped.png')
+    end
+    png.write(path: "./greyscale_alpha_striped")
+    expect(File.exist?(Dir.pwd + '/greyscale_alpha_striped.png')).to eq(true)
   end
 
   it 'can correctly read an rbg png file' do
@@ -239,6 +272,8 @@ RSpec.describe Rbimg::PNG do
           compression_method: 0,
           filter_method: 0,
           interlace_method: 0,
+          chunk_data: [0,0,7,110,0,0,6,192,8,6,0,0,0],
+          crc: [175,166,118,220],
           type: "IHDR"
         }
         
@@ -264,7 +299,7 @@ RSpec.describe Rbimg::PNG do
 
   describe ".IDAT" do 
 
-    it "does something useful" do 
+    it "corectly writes the IDAT chunk" do 
       expect(false).to eq(true)
     end
 
@@ -327,9 +362,10 @@ end
   
 
 
-  describe ".readChunks" do 
+  describe ".readChunk" do 
 
-    it "correctly " do 
+    it "correctly reads the length, type, and crc" do 
+
 
       expect(false).to eq(true)
 
