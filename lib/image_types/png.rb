@@ -84,11 +84,13 @@ class Rbimg::PNG
     
     attr_reader :pixels, :width, :height, :bit_depth, :compression_method, :filter_method, :interlace_method
 
-    def initialize(pixels: nil, type: nil, width: , height: , bit_depth: 8, compression_method: 0, filter_method: 0, interlace_method: 0)
+    def initialize(pixels: nil, type: nil, width: , height: , bit_depth: 8, compression_method: 0, filter_method: 0, interlace_method: 0, palette: nil)
         @pixels, @width, @height, @compression_method, @filter_method, @interlace_method = pixels, width, height, compression_method, filter_method, interlace_method
         @bit_depth = bit_depth
         @type = type.is_a?(Integer) ? type : COLOR_TYPES[type]
-        raise ArgumentError("#{type} is not a valid color type. Please use one of: #{COLOR_TYPES.keys}") if type.nil?
+        raise ArgumentError.new("#{type} is not a valid color type. Please use one of: #{COLOR_TYPES.keys}") if type.nil?
+        raise ArgumentError.new("Palettes are not compatible with color types 0 and 4") if @type == 0 || @type == 4
+        raise ArgumentError.new("palette must be an array") if palette && !palette.is_a?(Array)
         @signature = [137, 80, 78, 71, 13, 10, 26, 10]
         @chunks = [
             Chunk.IHDR(
@@ -109,6 +111,7 @@ class Rbimg::PNG
             ),
             Chunk.IEND
         ]
+        @chunks.insert(1, Chunk.PLTE(palette)) if !palette.nil?
 
     end
 
@@ -200,6 +203,7 @@ class Rbimg::PNG
         def self.PLTE(data)
             data = data.bytes if data.is_a?(String)
             raise ArgumentError.new("Number of bytes must be a multiple of 3") if data.length % 3 != 0
+            raise ArgumentError.new("Pallette length must be between 1 and 256") if data.length < 3 || data.length > (256 * 3)
             Chunk.new(type: "PLTE", data: data)
         end
 
