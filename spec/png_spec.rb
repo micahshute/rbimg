@@ -14,7 +14,7 @@ RSpec.describe Rbimg::PNG do
     expect(File.exist?(Dir.pwd + '/palette.png')).to eq(true)
   end
 
-  it "can create a png image from the MSNT image data" do
+  it "can create a png image from the MNIST image data" do
     img_data = File.read("./data/t10k-images-idx3-ubyte").bytes
     mag_num = img_data[0...4]
     num_imgs = img_data[4...8]
@@ -22,11 +22,11 @@ RSpec.describe Rbimg::PNG do
     num_cols = img_data[12...16]
     pixels = img_data[16...(16 + 784)]
     png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: 28, height: 28)
-    if File.exist?(Dir.pwd + '/msnt.png')
-      File.delete(Dir.pwd + '/msnt.png')
+    if File.exist?(Dir.pwd + '/mnist.png')
+      File.delete(Dir.pwd + '/mnist.png')
     end
-    png.write(path: "./msnt")
-    expect(File.exist?(Dir.pwd + '/msnt.png')).to eq(true)
+    png.write(path: "./mnist")
+    expect(File.exist?(Dir.pwd + '/mnist.png')).to eq(true)
   end
 
   it "creates a valid rgb PNG img" do

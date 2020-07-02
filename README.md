@@ -67,7 +67,7 @@ end
 png = Rbimg::PNG.new(pixels: pixels.flatten, type: :greyscale_alpha, width: 300, height: 500)
 png.write(path: './greyscale_alpha')
 ```
-Write a greyscale image from the MSNT dataset:
+Write a greyscale image from the MNIST dataset:
 
 ```ruby
 img_data = File.read("./data/t10k-images-idx3-ubyte").bytes
@@ -77,7 +77,7 @@ num_rows = img_data[8...12]
 num_cols = img_data[12...16]
 pixels = img_data[16...(16 + 784)]
 png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: 28, height: 28)
-png.write(path: 'mnst_test')
+png.write(path: 'mnist_test')
 ```
 
 Read a PNG image and get the pixel array from a path
@@ -113,9 +113,7 @@ Or install it yourself as:
 
     $ gem install rbimg
 
-## Usage
 
-TODO: Write usage instructions here
 
 ## Development
 
