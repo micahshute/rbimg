@@ -20,12 +20,15 @@ class Rbimg::PNG
         raise ArgumentError.new(".read must be initialized with a path or a datastream") if (path.nil? && data.nil?) || (!path.nil? && !data.nil?)
         raise ArgumentError.new("data must be an array of byte integers or a byte string") if data && !data.is_a?(Array) && !data.is_a?(String)
         raise ArgumentError.new("data must be an array of byte integers or a byte string") if data && data.is_a?(Array) && !data.first.is_a?(Integer) 
+        path += ".png" if path && !path.end_with?('.png')
         begin
+
             if path
                 data = File.read(path).bytes
             else
                 data = data.bytes if data.is_a?(String)
             end
+            
             chunk_start = 8
             chunks = []
             loop do 
@@ -57,10 +60,11 @@ class Rbimg::PNG
             compression_method = chunks.first[:compression_method]
             filter_method = chunks.first[:filter_method]
             interlace_method = chunks.first[:interlace_method]
+
             all_idats = chunks.filter{ |c| c.is_a?(Hash) && c[:type] == "IDAT" }
             compressed_pixels = all_idats.reduce([]){ |mem, idat| mem + idat[:compressed_pixels] }
             pixels_and_filter = Zlib::Inflate.inflate(compressed_pixels.pack("C*")).unpack("C*")
-
+            
             case color_type
             when 0
                 pixel_width = width
@@ -80,7 +84,9 @@ class Rbimg::PNG
             plte = chunks.find{|c| c[:type] == "PLTE" unless c.is_a?(Array)}
             args[:palette] = plte[:chunk_data] if plte
             new(**args)
-        rescue 
+        rescue Errno::ENOENT => e
+            raise ArgumentError.new("Invalid path #{path}")
+        rescue => e
             raise Rbimg::FormatError.new("This PNG file is not in the correct format or has been corrupted")
         end
     end
@@ -88,9 +94,11 @@ class Rbimg::PNG
     
     attr_reader :pixels, :width, :height, :bit_depth, :compression_method, :filter_method, :interlace_method
 
-    def initialize(pixels: nil, type: nil, width: , height: , bit_depth: 8, compression_method: 0, filter_method: 0, interlace_method: 0, palette: nil)
+    def initialize(pixels: nil, type: nil, width: nil, height: nil, bit_depth: 8, compression_method: 0, filter_method: 0, interlace_method: 0, palette: nil)
         @pixels, @width, @height, @compression_method, @filter_method, @interlace_method = pixels, width, height, compression_method, filter_method, interlace_method
         @bit_depth = bit_depth
+        type = :greyscale if type.nil?
+
         @type = type.is_a?(Integer) ? type : COLOR_TYPES[type]
         raise ArgumentError.new("#{type} is not a valid color type. Please use one of: #{COLOR_TYPES.keys}") if type.nil?
         raise ArgumentError.new("Palettes are not compatible with color types 0 and 4") if palette && (@type == 0 || @type == 4)
