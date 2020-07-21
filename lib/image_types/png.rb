@@ -49,6 +49,7 @@ class Rbimg::PNG
                 end
 
                 chunk_start = chunk_end
+                #TODO: Make sure last chunk is IEND
                 break if chunk_end >= data.length - 1
 
             end
@@ -62,7 +63,7 @@ class Rbimg::PNG
             interlace_method = chunks.first[:interlace_method]
 
             all_idats = chunks.filter{ |c| c.is_a?(Hash) && c[:type] == "IDAT" }
-            compressed_pixels = all_idats.reduce([]){ |mem, idat| mem + idat[:compressed_pixels] }
+            compressed_pixels = all_idats.reduce([]) { |mem, idat| mem + idat[:compressed_pixels] }
             pixels_and_filter = Zlib::Inflate.inflate(compressed_pixels.pack("C*")).unpack("C*")
             
             case color_type
@@ -79,7 +80,70 @@ class Rbimg::PNG
             else
                 raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
             end
-            pixels = pixels_and_filter.filter.with_index{ |_,i| i % (pixel_width + 1) != 0}
+            
+            scanline_filters = Array.new(height, nil)
+            pixels = Array.new(pixels_and_filter.length - height, nil)
+            
+            pixels_and_filter.each.with_index do |pixel,i| 
+                scanline = i / (pixel_width + 1)
+                pixel_number = (i % (pixel_width + 1)) - 1
+                pixel_loc = scanline * pixel_width + pixel_number
+                if (pixel_number == -1)
+                    scanline_filters[scanline] = pixel
+                else
+                    case scanline_filters[scanline]
+                    when 0
+                        pixels[pixel_loc] = pixel
+                    when 1
+                        x = pixel_number
+                        bpp = (pixel_width / width) * (bit_depth / 8.0).ceil
+                        prev_raw = x - bpp < 0 ? 0 : pixels[pixel_loc - bpp]
+                        new_pixel = (pixel + prev_raw) % 256
+                        pixels[pixel_loc] = new_pixel
+                    when 2
+                        x = pixel_number
+                        prev_raw = scanline == 0 ? 0 : pixels[pixel_loc - pixel_width]
+                        new_pixel = (pixel + prev_raw) % 256
+                        pixels[pixel_loc] = new_pixel
+                    when 3
+                        x = pixel_number
+                        bpp = (pixel_width / width) * (bit_depth / 8.0).ceil
+                        left_pix = x - bpp < 0 ? 0 : pixels[pixel_loc - bpp]
+                        above_pix = scanline == 0 ? 0 : pixels[pixel_loc - pixel_width]
+                        new_pixel = (pixel + ((left_pix + above_pix) / 2).floor) % 256
+                        pixels[pixel_loc] = new_pixel
+                    when 4
+                        x = pixel_number
+                        bpp = (pixel_width / width) * (bit_depth / 8.0).ceil
+
+                        paeth_predictor = Proc.new do |left, above, upper_left|
+                            p = left + above - upper_left
+                            pa = (p - left).abs
+                            pb = (p - above).abs
+                            pc = (p - upper_left).abs
+                            if pa <= pb && pa <= pc
+                                left
+                            elsif pb <= pc
+                                above
+                            else
+                                upper_left
+                            end
+                        end
+
+                        left_pix = x - bpp < 0 ? 0 : pixels[pixel_loc - bpp]
+                        above_pix = scanline == 0 ? 0 : pixels[pixel_loc - pixel_width]
+                        upper_left_pix = scanline == 0 ? 0 : x - bpp < 0 ? 0 : pixels[pixel_loc - pixel_width - bpp]
+                        pp_out = paeth_predictor[left_pix, above_pix, upper_left_pix]
+                        new_pixel = (pixel + pp_out) % 256
+                        pixels[pixel_loc] = new_pixel
+                    else
+                        raise Rbimg::FormatError.new("Incorrect Filtering type used on this PNG file")
+                    end
+                end
+            end
+
+
+
             args = {pixels: pixels, type: color_type, width: width, height: height, bit_depth: bit_depth}
             plte = chunks.find{|c| c[:type] == "PLTE" unless c.is_a?(Array)}
             args[:palette] = plte[:chunk_data] if plte
