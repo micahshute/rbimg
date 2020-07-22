@@ -25,20 +25,7 @@ class Rbimg::PNG
 
         color_type = COLOR_TYPES[type]
 
-        case color_type
-        when 0
-            logical_pixel_width = width 
-        when 2
-            logical_pixel_width = width * 3 
-        when 3
-            logical_pixel_width = width 
-        when 4
-            logical_pixel_width = width * 2 
-        when 6
-            logical_pixel_width = width * 4 
-        else
-            raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
-        end
+        logical_pixel_width = width * Rbimg::PNG.pixel_size_for(color_type: color_type)
 
         if divider
             width_multiplier = logical_pixel_width / width
@@ -57,12 +44,10 @@ class Rbimg::PNG
             end
         end
 
-        
 
         if as == :row
             new_width = images.length * width 
             new_height = height
-            
             
             if divider
                 new_width += (divider.width * (images.length - 1))
@@ -100,6 +85,23 @@ class Rbimg::PNG
             binding.pry
         end
 
+    end
+
+    def self.pixel_size_for(color_type:)
+        case color_type
+        when 0
+            1
+        when 2
+            3
+        when 3
+            1
+        when 4
+            2
+        when 6
+            4
+        else
+            raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
+        end
     end
 
     def self.read(path: nil, data: nil)
@@ -153,20 +155,8 @@ class Rbimg::PNG
             compressed_pixels = all_idats.reduce([]) { |mem, idat| mem + idat[:compressed_pixels] }
             pixels_and_filter = Zlib::Inflate.inflate(compressed_pixels.pack("C*")).unpack("C*")
             
-            case color_type
-            when 0
-                logical_pixel_width = width 
-            when 2
-                logical_pixel_width = width * 3 
-            when 3
-                logical_pixel_width = width 
-            when 4
-                logical_pixel_width = width * 2 
-            when 6
-                logical_pixel_width = width * 4 
-            else
-                raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
-            end
+
+            logical_pixel_width = Rbimg::PNG.pixel_size_for(color_type: color_type) * width
 
             pixel_width = (logical_pixel_width * (bit_depth / 8.0)).ceil
 
@@ -249,12 +239,10 @@ class Rbimg::PNG
                         binary_segment_start = pixel_num_in_row * bit_depth
                         binary_segment_end = binary_segment_start + bit_depth
                         binary_segment = binary_data[binary_segment_start...binary_segment_end]
-                        # binding.pry
                         logical_pixel_value = binary_segment.to_i(2)
                         corrected_pixel_location = corrected_row_start + pixel_num_in_row
                         corrected_pixels[corrected_pixel_location] = logical_pixel_value
                     end
-                    # binding.pry
                 end
             else
                 corrected_pixels = pixels
@@ -272,9 +260,10 @@ class Rbimg::PNG
         end
     end
 
+
     
     attr_reader :pixels, :width, :height, :bit_depth, :compression_method, :filter_method, :interlace_method
-
+    attr_reader :pixel_size
     def initialize(pixels: nil, type: nil, width: nil, height: nil, bit_depth: 8, compression_method: 0, filter_method: 0, interlace_method: 0, palette: nil)
         @pixels, @width, @height, @compression_method, @filter_method, @interlace_method = pixels, width, height, compression_method, filter_method, interlace_method
         @bit_depth = bit_depth
@@ -306,7 +295,24 @@ class Rbimg::PNG
         ]
         @chunks.insert(1, Chunk.PLTE(palette)) if !palette.nil?
 
+        @pixel_size = Rbimg::PNG.pixel_size_for(color_type: @type)
+
     end
+
+    def pixel(num)
+        start = num * @pixel_size
+        pend = start + @pixel_size
+        pixels[start...pend]
+    end
+
+    def row(rownum)
+        return nil if rownum > self.height
+        pix_width = pixel_size * width
+        start = rownum * pix_width
+        pend = start + pix_width
+        pixels[start...pend]
+    end
+
 
     def type
         COLOR_TYPES.each do |k,v|
@@ -322,6 +328,8 @@ class Rbimg::PNG
         postscript = path.split(".").last == "png" ? "" : ".png"
         File.write(path + postscript, bytes)
     end
+
+
 
     private
 
@@ -519,5 +527,8 @@ class Rbimg::PNG
         end
 
     end
+
+     
+    
 
 end
