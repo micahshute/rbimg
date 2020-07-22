@@ -4,7 +4,15 @@ Allows simple creation and reading of images (currently only PNG images).
 
 Supports all required chunk types (IHDR, PLTE, IDAT, IEND)
 
-Filtering is not currently supported.
+All filtering methods for individual scanlines are supported for reading PNG images, but it will always write with a filtering method of 0 (so re-writing may give you a different format than the original image)
+
+All bit depths for PNG images are supported. See PNG documentation or source code for specifics (ArgumentError thrown if an incorrect bit depth is used for a specific color type)
+
+All PNG color types are supported: greyscale, greyscale with alpha, rgb, rgba, and palette. All with their respective bit_depth sizes.
+
+As of now this gem will be able to retrieve the correct pixel information for all PNG images except for those with an interlace method other than 0, which, as far as I can tell, are most PNG images.
+
+Non-required chunk types are not currently supported.
 
 This gem is primarily for simple manipulation of images using pixel data.
 
@@ -95,6 +103,22 @@ png = Rbimg::PNG.read(data: data)
 puts png.pixels
 ```
 
+Write a 16-bit-depth rgba image with random colors and alpha:
+
+```ruby
+height = 140
+width = 123
+r = Random.new
+pixels = Array.new(3 * width * height) do |i|
+    r.rand(2 ** 16)
+end
+
+png = Rbimg::PNG.new(pixels: pixels, type: :rgb, width: width, height: height, bit_depth: 16)
+png.write(path: "./rgba_16bit")
+```
+
+Combine images in rows or columns: 
+
 
 
 ## Installation
@@ -122,6 +146,9 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
+
+The feature that will make this gem fully-functional for all PNG images is the implementation of interlaced PNGs. Any help is welcomed. This gem was developed using the documentation found and libpng.org/png/spec/1.2
+Information about interlaced PNGs can be found there. 
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/rbimg. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/rbimg/blob/master/CODE_OF_CONDUCT.md).
 

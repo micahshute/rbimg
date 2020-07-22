@@ -1,6 +1,7 @@
 require_relative "./rbimg/version"
 require 'byteman'
 require 'zlib'
+require 'pry'
 
 module Rbimg
   class Error < StandardError; end

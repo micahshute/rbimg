@@ -68,19 +68,22 @@ class Rbimg::PNG
             
             case color_type
             when 0
-                pixel_width = width
+                logical_pixel_width = width 
             when 2
-                pixel_width = width * 3
+                logical_pixel_width = width * 3 
             when 3
-                pixel_width = width 
+                logical_pixel_width = width 
             when 4
-                pixel_width = width * 2
+                logical_pixel_width = width * 2 
             when 6
-                pixel_width = width * 4
+                logical_pixel_width = width * 4 
             else
                 raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
             end
-            
+
+            pixel_width = (logical_pixel_width * (bit_depth / 8.0)).ceil
+
+
             scanline_filters = Array.new(height, nil)
             pixels = Array.new(pixels_and_filter.length - height, nil)
             
@@ -143,15 +146,42 @@ class Rbimg::PNG
             end
 
 
+            
 
-            args = {pixels: pixels, type: color_type, width: width, height: height, bit_depth: bit_depth}
+            if bit_depth != 8
+                corrected_pixels = Array.new(logical_pixel_width * height, nil)
+                height.times do |row_num| 
+                    row_start = row_num * pixel_width
+                    row_end = row_start + pixel_width
+                    row_data = pixels[row_start...row_end]
+                    binary_data = Byteman.buf2int(row_data).to_s(2)
+                    pad_size = ((logical_pixel_width * bit_depth) / 8.0).ceil * 8
+                    binary_data = Byteman.pad(num: binary_data, len: pad_size, type: :bits)
+                    corrected_row_start = row_num * logical_pixel_width
+                    logical_pixel_width.times do |pixel_num_in_row|
+                        binary_segment_start = pixel_num_in_row * bit_depth
+                        binary_segment_end = binary_segment_start + bit_depth
+                        binary_segment = binary_data[binary_segment_start...binary_segment_end]
+                        # binding.pry
+                        logical_pixel_value = binary_segment.to_i(2)
+                        corrected_pixel_location = corrected_row_start + pixel_num_in_row
+                        corrected_pixels[corrected_pixel_location] = logical_pixel_value
+                    end
+                    # binding.pry
+                end
+            else
+                corrected_pixels = pixels
+            end
+
+            args = {pixels: corrected_pixels, type: color_type, width: width, height: height, bit_depth: bit_depth}
             plte = chunks.find{|c| c[:type] == "PLTE" unless c.is_a?(Array)}
             args[:palette] = plte[:chunk_data] if plte
             new(**args)
         rescue Errno::ENOENT => e
             raise ArgumentError.new("Invalid path #{path}")
         rescue => e
-            raise Rbimg::FormatError.new("This PNG file is not in the correct format or has been corrupted")
+            raise e if e.is_a?(Rbimg::FormatError)
+            raise Rbimg::FormatError.new("This PNG file is not in the correct format or has been corrupted :)")
         end
     end
 
@@ -268,7 +298,7 @@ class Rbimg::PNG
             test_length(width)
             test_length(height) 
             raise ArgumentError.new('Color code types must be 0, 2, 3, 4, or 6') if ![0,2,3,4,6].include?(color_type)
-            raise ArgumentError.new('Bit depth must be related to color_type as such: #{bit_depth_rules}') if !bit_depth_rules[color_type].include?(bit_depth) 
+            raise ArgumentError.new("Bit depth must be related to color_type as such: color_value => bit_depth_options: #{bit_depth_rules}") if !bit_depth_rules[color_type].include?(bit_depth) 
 
 
             wbytes = Byteman.pad(len: 4, num: Byteman.int2buf(width))
@@ -319,21 +349,35 @@ class Rbimg::PNG
 
                 case bit_depth
                 when 1
-                    [0] + Byteman.hex(bit_strm.map{|b| b.to_s(2)}.join('').to_i(2))
+                    raise ArgumentError.new("If bit depth is 1, all pixel values must be a 1 or 0") if bit_strm.any?{ |b| b != 0 && b != 1 }
+                    bits = bit_strm.join('') + ("0" * ((-1 * bit_strm.length % 8) % 8 ))
+                    Byteman.hex(0) + Byteman.pad(num: Byteman.hex(bits.to_i(2)), len: bits.length / 8)
                 when 2
-                    [0] + Byteman.hex(bit_strm.map{|b| Byteman.pad(num: b.to_s(2), len: 2)}.join('').to_i(2))
-                when 4
-                    [0] + Byteman.hex(bit_strm.map{|b| Byteman.pad(num: b.to_s(2), len: 4)}.join('').to_i(2))
+                    bits = bit_strm.map do |b| 
+                        raise ArgumentError.new("If bit depth is 2, all pixel values must be between 0 and 3") if !b.between?(0,3)
+                        Byteman.pad(num: b, len: 2, type: :bits)
+                    end.join('')
+                    padded_bits = bits + ("0" * ((-1 * bit_strm.length * 2) % 8) % 8)
+                    Byteman.hex(0) + Byteman.pad(num: Byteman.hex(padded_bits.to_i(2)), len: padded_bits.length / 8)
+                when 4       
+                    bits = bit_strm.map do |b|
+                        raise ArgumentError.new("If bit depth is 4, all pixel values must be between 0 and 15") if !b.between?(0,15)
+                        Byteman.pad(num: b, len: 4, type: :bits)
+                    end.join('')
+                    padded_bits = bits + ("0" * ((-1 * bit_strm.length * 4) % 8) % 8)
+                    Byteman.hex(0) + Byteman.pad(num: Byteman.hex(padded_bits.to_i(2)), len: padded_bits.length / 8)
                 when 8
+                    raise ArgumentError.new("If bit depth is 8, all pixel values must be between 0 and 255") if bit_strm.any?{|b| !b.between?(0,255)}
                     ([0] + bit_strm).pack("C*")
                 when 16
-                    ([0] + bit_strm).pack("S*")
+                    raise ArgumentError.new("If bit depth is 16, all pixel values must be between 0 and 65535") if bit_strm.any?{|b| !b.between?(0,65535)}
+                    Byteman.hex(0) + bit_strm.map{|b| Byteman.pad(num: Byteman.hex(b), len: 2)}.join('')
                 else
                     ArgumentError.new("bit_depth can only be 1,2,4,8, or 16 bits")
                 end
 
             end
-
+            
             z = Zlib::Deflate.new(Zlib::BEST_COMPRESSION, Zlib::MAX_WBITS, Zlib::MAX_MEM_LEVEL, Zlib::RLE)
             zstrm = z.deflate(scanlines.join(''), Zlib::FINISH)
             z.close

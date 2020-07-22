@@ -5,13 +5,244 @@ RSpec.describe Rbimg::PNG do
     expect(png).to be_a(Rbimg::PNG)
   end
 
-  it "can write a pallet PNG img" do
+  it "can read and write a pallet PNG img" do
     png = Rbimg::PNG.read(path: './data/palette.png')
     if File.exist?(Dir.pwd + '/palette.png')
       File.delete('./palette.png')
     end
     png.write(path: "./palette.png")
     expect(File.exist?(Dir.pwd + '/palette.png')).to eq(true)
+    png2 = Rbimg::PNG.read(path: './palette.png')
+    expect(png.pixels).to eq(png2.pixels)
+  end
+
+  it "can read and  write a greyscale image with bit depth of 1" do 
+    width = 987
+    height = 833
+    r = Random.new
+    pixels = Array.new(width * height) do 
+      r.rand(2)
+    end
+    png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: width, height: height, bit_depth: 1)
+    if File.exist?(Dir.pwd + '/grey_bitdepth_1.png')
+      File.delete('./grey_bitdepth_1.png')
+    end
+    png.write(path: './grey_bitdepth_1')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_1.png')).to eq(true)
+
+    png2 = Rbimg::PNG.read(path: './grey_bitdepth_1.png')
+    if File.exist?(Dir.pwd + '/grey_bitdepth_1_rewrite.png')
+      File.delete('./grey_bitdepth_1_rewrite.png')
+    end
+
+    png2.write(path: './grey_bitdepth_1_rewrite')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_1_rewrite.png')).to eq(true)
+    expect(png.pixels).to eq(png2.pixels)
+
+    pixels2 = [0,0,0,0,1,1,0,0,0,1,0,0]
+    png3 = Rbimg::PNG.new(pixels: pixels2, type: :greyscale, width: 3, height: 4, bit_depth: 1)
+    if File.exist?(Dir.pwd + '/test_1byte.png')
+      File.delete('./test_1byte.png')
+    end
+    png3.write(path: "./test_1byte")
+    png4 = Rbimg::PNG.read(path: './test_1byte')
+    png4.write(path: './test_1byte_rewrite')
+    expect(File.exist?(Dir.pwd + '/test_1byte.png')).to eq(true)
+    expect(png3.pixels).to eq(png4.pixels)
+  end
+
+  it "can read and  write a greyscale image with bit depth of 2" do 
+    width = 1023
+    height = 833
+    r = Random.new
+    pixels = Array.new(width * height) do 
+      r.rand(2 ** 2)
+    end
+    png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: width, height: height, bit_depth: 2)
+    if File.exist?(Dir.pwd + '/grey_bitdepth_2.png')
+      File.delete('./grey_bitdepth_2.png')
+    end
+    png.write(path: './grey_bitdepth_2')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_2.png')).to eq(true)
+
+    png2 = Rbimg::PNG.read(path: './grey_bitdepth_2.png')
+    if File.exist?(Dir.pwd + '/grey_bitdepth_2_rewrite.png')
+      File.delete('./grey_bitdepth_2_rewrite.png')
+    end
+
+    png2.write(path: './grey_bitdepth_2_rewrite')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_2_rewrite.png')).to eq(true)
+    expect(png.pixels).to eq(png2.pixels)
+
+    pixels2 = [0,0,0,0,3,2,0,0,0,1,0,0]
+    png3 = Rbimg::PNG.new(pixels: pixels2, type: :greyscale, width: 3, height: 4, bit_depth: 2)
+    if File.exist?(Dir.pwd + '/test_2byte.png')
+      File.delete('./test_2byte.png')
+    end
+    png3.write(path: "./test_2byte")
+    png4 = Rbimg::PNG.read(path: './test_2byte')
+    png4.write(path: './test_2byte_rewrite')
+    expect(File.exist?(Dir.pwd + '/test_2byte.png')).to eq(true)
+    expect(png3.pixels).to eq(png4.pixels)
+  end
+
+  it "can read and write an image with bit depth of 4" do 
+    r = Random.new
+    width = 1023
+    height = 83
+    pixels = Array.new(width * height) do 
+      r.rand(2 ** 4)
+    end
+    png = Rbimg::PNG.new(pixels: pixels, type: :greyscale, width: width, height: height, bit_depth: 4)
+    if File.exist?(Dir.pwd + '/grey_bitdepth_4.png')
+      File.delete('./grey_bitdepth_4.png')
+    end
+    png.write(path: './grey_bitdepth_4')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_4.png')).to eq(true)
+
+    png2 = Rbimg::PNG.read(path: './grey_bitdepth_4.png')
+    if File.exist?(Dir.pwd + '/grey_bitdepth_4_rewrite.png')
+      File.delete('./grey_bitdepth_4_rewrite.png')
+    end
+
+    png2.write(path: './grey_bitdepth_4_rewrite')
+    expect(File.exist?(Dir.pwd + '/grey_bitdepth_4_rewrite.png')).to eq(true)
+    expect(png.pixels).to eq(png2.pixels)
+
+    pixels2 = [0,0,0,0,10,10,0,0,0,15,0,0]
+    png3 = Rbimg::PNG.new(pixels: pixels2, type: :greyscale, width: 3, height: 4, bit_depth: 4)
+    if File.exist?(Dir.pwd + '/test_4byte.png')
+      File.delete('./test_4byte.png')
+    end
+    png3.write(path: "./test_4byte")
+    png4 = Rbimg::PNG.read(path: './test_4byte')
+    png4.write(path: './test_4byte_rewrite')
+    expect(File.exist?(Dir.pwd + '/test_4byte.png')).to eq(true)
+    expect(png3.pixels).to eq(png4.pixels)
+
+
+  end
+
+  it "can read and write an image with a bit depth of 16" do
+    height = 140
+    width = 123
+    r = Random.new
+
+    pixels = Array.new(3 * width * height) do |i|
+      r.rand(2 ** 16)
+      
+    end
+
+    png = Rbimg::PNG.new(pixels: pixels, type: :rgb, width: width, height: height, bit_depth: 16)
+    if File.exist?(Dir.pwd + '/rgb_bitdepth_16.png')
+      File.delete('./rgb_bitdepth_16.png')
+    end
+    png.write(path: './rgb_bitdepth_16')
+    expect(File.exist?(Dir.pwd + '/rgb_bitdepth_16.png')).to eq(true)
+
+    png2 = Rbimg::PNG.read(path: './rgb_bitdepth_16.png')
+    if File.exist?(Dir.pwd + '/rgb_bitdepth_16_rewrite.png')
+      File.delete('./rgb_bitdepth_16_rewrite.png')
+    end
+
+    png2.write(path: './rgb_bitdepth_16_rewrite')
+    expect(File.exist?(Dir.pwd + '/rgb_bitdepth_16_rewrite.png')).to eq(true)
+
+    expect(png.pixels).to eq(png2.pixels)
+
+    pixels2 = [0,0,0,0,0,0,0,0,0,2 ** 15, 0, 2 ** 15, 0, 2 ** 15, 2 ** 15, 2 ** 15, 2 ** 15, 0, 0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1]
+
+    png3 = Rbimg::PNG.new(pixels: pixels2, type: :rgb, width: 3, height: 4, bit_depth: 16)
+    if File.exist?(Dir.pwd + '/testrgb_bitdepth_16.png')
+      File.delete('./testrgb_bitdepth_16.png')
+    end
+    png3.write(path: './testrgb_bitdepth_16')
+    expect(File.exist?(Dir.pwd + '/testrgb_bitdepth_16.png')).to eq(true)
+
+    png4 = Rbimg::PNG.read(path: './testrgb_bitdepth_16.png')
+    if File.exist?(Dir.pwd + '/testrgb_bitdepth_16_rewrite.png')
+      File.delete('./testrgb_bitdepth_16_rewrite.png')
+    end
+
+    png4.write(path: './testrgb_bitdepth_16_rewrite')
+    expect(File.exist?(Dir.pwd + '/testrgb_bitdepth_16_rewrite.png')).to eq(true)
+
+    expect(png.pixels).to eq(png2.pixels)
+
+    pixels3 = Array.new(4 * width * height) do |i|
+      r.rand(2 ** 16)
+      
+    end
+
+    png5 = Rbimg::PNG.new(pixels: pixels3, type: :rgba, width: width, height: height, bit_depth: 16)
+    if File.exist?(Dir.pwd + '/rgba_bitdepth_16.png')
+      File.delete('./rgba_bitdepth_16.png')
+    end
+    png5.write(path: './rgba_bitdepth_16')
+    expect(File.exist?(Dir.pwd + '/rgba_bitdepth_16.png')).to eq(true)
+
+    png6 = Rbimg::PNG.read(path: './rgba_bitdepth_16.png')
+    if File.exist?(Dir.pwd + '/rgba_bitdepth_16_rewrite.png')
+      File.delete('./rgba_bitdepth_16_rewrite.png')
+    end
+
+    png6.write(path: './rgba_bitdepth_16_rewrite')
+    expect(File.exist?(Dir.pwd + '/rgba_bitdepth_16_rewrite.png')).to eq(true)
+
+    expect(png5.pixels).to eq(png6.pixels)
+    
+  end
+
+  it "appropriately reads images with different scanline filtering methods" do 
+    png1 = Rbimg::PNG.read(path: './data/filter_test1')
+    png2 = Rbimg::PNG.read(path: './data/filter_test2')
+    if File.exist?(Dir.pwd + '/filter_test1_rewrite.png')
+      File.delete('./filter_test1_rewrite.png')
+    end
+    if File.exist?(Dir.pwd + '/filter_test2_rewrite.png')
+      File.delete('./filter_test2_rewrite.png')
+    end
+
+    png1.write path: './filter_test1_rewrite'
+    png2.write path: './filter_test2_rewrite'
+    
+    expect(File.exist?(Dir.pwd + '/filter_test1_rewrite.png')).to eq(true)
+    expect(File.exist?(Dir.pwd + '/filter_test2_rewrite.png')).to eq(true)
+  end
+
+  it "can combine images together" do 
+
+        
+    desktop_path = "/mnt/c/users/micah/Desktop/"
+
+    rest2 = Rbimg::PNG.read(path: desktop_path + 'rest2')
+    rest12 = Rbimg::PNG.read(path: desktop_path + 'rest12')
+    rest22 = Rbimg::PNG.read(path: desktop_path + 'rest22')
+    rest32 = Rbimg::PNG.read(path: desktop_path + 'rest32')
+    rest42 = Rbimg::PNG.read(path: desktop_path + 'rest42')
+
+    rest272 = Rbimg::PNG.read(path: desktop_path + 'rest272')
+
+    divider = Array.new(400,255)
+
+    imgs = [rest2, rest12, rest22, rest32, rest42, rest272]
+
+    new_width = imgs.length * 28 + (divider.length * (imgs.length - 1))
+    new_height = 28
+
+
+    new_pixels = 28.times.map do |row|
+        row_start = row * 28
+
+        imgs.map do |img|
+            row_pixels = imgs.pixels[row_start...(row_start + 28)] 
+            img == imgs.last ? row_pixels : row_pixels + divider
+        end
+    end.flatten
+
+    new_img = Rbimg::PNG.new(pixels: new_pixels, type: :greyscale, width: new_width, height: new_height)
+    new_img.write(path: desktop_path + "img_row")
+    expect(false).to eq(true)
   end
 
   it "can create a png image from the MNIST image data" do
@@ -78,6 +309,11 @@ RSpec.describe Rbimg::PNG do
     end
     png.write(path: "./rgba_striped")
     expect(File.exist?(Dir.pwd + '/rgba_striped.png')).to eq(true)
+  end
+
+  it "can read and rewrite a valid rgba img" do 
+    png = Rbimg::PNG.read(path: './rgba_striped.png')
+    png.write(path: './rgba_rewrite')
   end
 
   it 'can create a valid greyscale alpha PNG img' do 
