@@ -117,7 +117,8 @@ png = Rbimg::PNG.new(pixels: pixels, type: :rgb, width: width, height: height, b
 png.write(path: "./rgba_16bit")
 ```
 
-Combine images in rows or columns: 
+Combine images in rows or columns:
+(Must have the same width, height, color type, and bit depth) 
 
 ```ruby
 path = Dir.pwd + "/"
