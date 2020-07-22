@@ -210,6 +210,14 @@ RSpec.describe Rbimg::PNG do
     expect(File.exist?(Dir.pwd + '/filter_test2_rewrite.png')).to eq(true)
   end
 
+  it "can retrieve a single pixel of the correct size" do
+    expect(false).to eq(true)
+  end
+
+  it "can retrieve a row of pixels" do 
+    expect(false).to eq(true)
+  end
+
   it "can combine images together" do 
 
         
