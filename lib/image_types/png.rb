@@ -15,6 +15,93 @@ class Rbimg::PNG
         rgba: 6
     }
 
+    def self.combine(*images, divider: nil, as: :row) 
+        raise ArgumentError.new("as: must be :row or :col") if as != :row && as != :col 
+        raise ArgumentError.new("Images and divider must all be an Rbimg::PNG") if !images.all?{|i| i.is_a?(Rbimg::PNG)} 
+        type = images.first.type
+        height = images.first.height
+        width = images.first.width
+        bit_depth = images.first.bit_depth
+
+        color_type = COLOR_TYPES[type]
+
+        case color_type
+        when 0
+            logical_pixel_width = width 
+        when 2
+            logical_pixel_width = width * 3 
+        when 3
+            logical_pixel_width = width 
+        when 4
+            logical_pixel_width = width * 2 
+        when 6
+            logical_pixel_width = width * 4 
+        else
+            raise ArgumentError.new("#{color_type} is not a valid color type. Must be 0,2,3,4, or 6")
+        end
+
+        if divider
+            width_multiplier = logical_pixel_width / width
+            divider_width = divider.width * width_multiplier
+            if as == :row
+                raise ArgumentError.new("divider must have the same height as images if aligning as a row") if divider.height != height
+            elsif as == :col
+                raise ArgumentError.new("divider must have the same width as images if aligning as a column") if divider.width != width
+            end
+            raise ArgumentError.new("divider must have the same type and bit_depth as images") if divider.type != type || divider.bit_depth != bit_depth
+        end
+
+        images.each do |i|
+            if i.type != type || i.height != height || i.width != width || i.bit_depth != bit_depth
+                raise ArgumentError.new("Currently all images must have the same type, height, width, and bit_depth to be combined")
+            end
+        end
+
+        
+
+        if as == :row
+            new_width = images.length * width 
+            new_height = height
+            
+            
+            if divider
+                new_width += (divider.width * (images.length - 1))
+            end
+
+            new_pixels = height.times.map do |row|
+                row_start = row * logical_pixel_width
+                divider_row_start = row * divider_width if divider
+                images.map do |img|
+                    row_pixels = img.pixels[row_start...(row_start + logical_pixel_width)] 
+                    ((img == images.last) || divider.nil?) ? row_pixels : row_pixels + divider.pixels[divider_row_start...(divider_row_start + divider_width)]
+                end
+            end.flatten
+        
+        else
+            new_width = width
+            new_height = images.length * height
+            if divider
+                new_height += (divider.height * (images.length - 1))
+            end
+
+            new_pixels = images.map do |img|
+                img_pixels = img.pixels
+                if divider && img != images.last
+                    img_pixels + divider.pixels
+                else
+                    img_pixels
+                end
+            end.flatten
+        end
+
+        begin
+        new_img = Rbimg::PNG.new(pixels: new_pixels, type: type, width: new_width, height: new_height, bit_depth: bit_depth)
+        rescue
+            binding.pry
+        end
+
+    end
+
     def self.read(path: nil, data: nil)
         
         raise ArgumentError.new(".read must be initialized with a path or a datastream") if (path.nil? && data.nil?) || (!path.nil? && !data.nil?)

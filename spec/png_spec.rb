@@ -213,35 +213,41 @@ RSpec.describe Rbimg::PNG do
   it "can combine images together" do 
 
         
-    desktop_path = "/mnt/c/users/micah/Desktop/"
+    path = Dir.pwd + "/data/"
 
-    rest2 = Rbimg::PNG.read(path: desktop_path + 'rest2')
-    rest12 = Rbimg::PNG.read(path: desktop_path + 'rest12')
-    rest22 = Rbimg::PNG.read(path: desktop_path + 'rest22')
-    rest32 = Rbimg::PNG.read(path: desktop_path + 'rest32')
-    rest42 = Rbimg::PNG.read(path: desktop_path + 'rest42')
+    rest2 = Rbimg::PNG.read(path: path + 'rest2')
+    rest12 = Rbimg::PNG.read(path: path + 'rest12')
+    rest22 = Rbimg::PNG.read(path: path + 'rest22')
+    rest32 = Rbimg::PNG.read(path: path + 'rest32')
+    rest42 = Rbimg::PNG.read(path: path + 'rest42')
 
-    rest272 = Rbimg::PNG.read(path: desktop_path + 'rest272')
+    rest272 = Rbimg::PNG.read(path: path + 'rest272')
 
-    divider = Array.new(400,255)
+    divider_pixels = Array.new(20 * 28,255)
+    divider_img = Rbimg::PNG.new(pixels: divider_pixels, type: :greyscale, width: 20, height: 28 )
 
     imgs = [rest2, rest12, rest22, rest32, rest42, rest272]
 
-    new_width = imgs.length * 28 + (divider.length * (imgs.length - 1))
-    new_height = 28
+    combined = Rbimg::PNG.combine(*imgs, divider: divider_img, as: :row)
+    combined.write(path: "./combine_greyscale_with_divider")
+    combined_raw = Rbimg::PNG.combine(*imgs)
+    combined_raw.write(path: './combine_greyscale_no_divider')
 
+    combined_grey_col = Rbimg::PNG.combine(*imgs, as: :col)
+    combined_grey_col.write(path: './combined_mnist_col')
 
-    new_pixels = 28.times.map do |row|
-        row_start = row * 28
-
-        imgs.map do |img|
-            row_pixels = imgs.pixels[row_start...(row_start + 28)] 
-            img == imgs.last ? row_pixels : row_pixels + divider
-        end
-    end.flatten
-
-    new_img = Rbimg::PNG.new(pixels: new_pixels, type: :greyscale, width: new_width, height: new_height)
-    new_img.write(path: desktop_path + "img_row")
+    col_divider = Rbimg::PNG.new(pixels: divider_pixels, type: :greyscale, width: 28, height: 20)
+    combined_col_divider = Rbimg::PNG.combine(*imgs, as: :col, divider: col_divider)
+    combined_col_divider.write(path: './combined_mnist_col_divided')
+    
+    color1pix = [255,0,0,0,255,0,0,0,255,0,255,0,0,0,255,255,0,0,0,0,255,255,0,0,0,255,0]
+    dividerpix = [0,0,0,255,255,255,0,0,0]
+    imgs = 5.times.map{ Rbimg::PNG.new(pixels: color1pix, type: :rgb, width: 3, height: 3)}
+    divider = Rbimg::PNG.new(pixels: dividerpix, type: :rgb, width: 1, height: 3)
+    combined_rgb = Rbimg::PNG.combine(*imgs, divider: divider)
+    combined_rgb.write(path: "./combined_rgb_row")
+    combined_rgb_col = Rbimg::PNG.combine(*imgs, as: :col)
+    combined_rgb_col.write(path: './combined_rgb_col')
     expect(false).to eq(true)
   end
 
