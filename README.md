@@ -119,6 +119,22 @@ png.write(path: "./rgba_16bit")
 
 Combine images in rows or columns: 
 
+```ruby
+path = Dir.pwd + "/"
+rest2 = Rbimg::PNG.read(path: path + 'rest2')
+rest12 = Rbimg::PNG.read(path: path + 'rest12')
+rest22 = Rbimg::PNG.read(path: path + 'rest22')
+rest32 = Rbimg::PNG.read(path: path + 'rest32')
+rest42 = Rbimg::PNG.read(path: path + 'rest42')
+rest272 = Rbimg::PNG.read(path: path + 'rest272')
+divider_pixels = Array.new(20 * 28,255)
+divider_img = Rbimg::PNG.new(pixels: divider_pixels, type: :greyscale, width: 20, height: 28 )
+
+imgs = [rest2, rest12, rest22, rest32, rest42, rest272]
+
+combined = Rbimg::PNG.combine(*imgs, divider: divider_img, as: :row)
+combined.write(path: "./combine_greyscale_with_divider")
+```
 
 
 ## Installation
