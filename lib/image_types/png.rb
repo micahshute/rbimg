@@ -117,10 +117,11 @@ class Rbimg::PNG
             else
                 data = data.bytes if data.is_a?(String)
             end
-            
+            # TODO: Verify png signature
             chunk_start = 8
             chunks = []
             loop do 
+                # TODO: Make 4 a constant: CRC length 
                 len_end = chunk_start + 4
                 type_end = len_end + 4
                 len = Byteman.buf2int(data[chunk_start...len_end])
@@ -195,6 +196,8 @@ class Rbimg::PNG
                     when 4
                         x = pixel_number
                         bpp = (pixel_width / width) * (bit_depth / 8.0).ceil
+
+                        # TODO: make paeth_predictor an outside method or strategy class
 
                         paeth_predictor = Proc.new do |left, above, upper_left|
                             p = left + above - upper_left
@@ -375,6 +378,7 @@ class Rbimg::PNG
             readChunk(bytes)
         end
 
+        # TODO: Make a check_crc! method
         def self.crc_valid?(type:, data:, crc:)
             c = new(type: type, data: data)
             c.bytes[-4..-1].bytes == crc
@@ -416,6 +420,7 @@ class Rbimg::PNG
 
         def self.IDATs(pixels, color_type: ,bit_depth:, width: , height: , idat_size: 2 ** 20)
 
+            #TODO: Use method which calculates this already
             case color_type
             when 0
                 pixel_width = width
@@ -433,6 +438,16 @@ class Rbimg::PNG
             expected_pixels = pixel_width * height
             raise ArgumentError.new("pixel count (#{pixels.length}) does not match expected pixel count (#{expected_pixels})") if pixels.length != expected_pixels
             pixel_square = Array.new(height, nil)
+
+
+            # TODO: Instead of copying pixels into a 2D format, consider replacing the 
+            # pixel_square.map method with a method which calculates the starting bit 
+            # of each row and calculate the index range of pixels and define bit_stream that 
+            # way. should save memory
+
+            # TODO: Consider if the argumenterrors in the pixel_square.map block are necessary
+
+            # TODO: In the line below, use Array.new(pixel_width, nil)
             pixel_square = pixel_square.map{ |_| [nil] * pixel_width}
             for i in 0...pixels.length
                 row = i / pixel_width
@@ -495,6 +510,7 @@ class Rbimg::PNG
             raise ArgumentError.new("Type must be a string, symbol, or an array") if !type.is_a?(String) && !type.is_a?(Symbol) && !type.is_a?(Array)
             @data = data.nil? ? [] : data
             @length = Byteman.pad(len: 4, num: Byteman.int2buf(@data.length))
+            # TODO: rename to test_length!
             self.class.test_length(@data.length)
  
             if type.is_a?(String) || type.is_a?(Symbol)
@@ -503,6 +519,7 @@ class Rbimg::PNG
                 @type = type
             end
             @crc_strategy = Rbimg::Strategies::CRCTableLookup
+            # TODO: rename #crc to #calculate_crc
             @crc = crc
         end
 
@@ -516,12 +533,14 @@ class Rbimg::PNG
 
         private
 
-
+        # TODO: See above: rename to test_length!
         def self.test_length(num, limit: 2 ** 31 - 1)
             raise ArgumentError.new("Length cannot exceed 2^31 - 1") if num > limit
         end
 
 
+        # TODO: See above: rename to calculate_crc
+        # TODO: make private
         def crc
             @crc_strategy.crc(@type, @data)
         end
