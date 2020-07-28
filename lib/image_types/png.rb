@@ -79,11 +79,8 @@ class Rbimg::PNG
             end.flatten
         end
 
-        begin
         new_img = Rbimg::PNG.new(pixels: new_pixels, type: type, width: new_width, height: new_height, bit_depth: bit_depth)
-        rescue
-            binding.pry
-        end
+
 
     end
 
@@ -301,6 +298,19 @@ class Rbimg::PNG
         @pixel_size = Rbimg::PNG.pixel_size_for(color_type: @type)
 
     end
+
+    #TODO: Add multidimentional pixel output capability (lazily calculated)
+    
+    #TODO: Add method to retrieve pixel by row, column (add default col= and 
+    # if there is only one input arg give index in arr otherwise
+    # retreive by row, col)
+
+    #TODO: Add each_pixel method which takes a block
+
+    # TODO: Consider making pixel object which has a value (array of data), and
+    # methods like .red, .green, .blue, .type, etc ?? on the fence about this
+
+    # TODO: Add transpose method??
 
     def pixel(num)
         start = num * @pixel_size
@@ -540,7 +550,6 @@ class Rbimg::PNG
 
 
         # TODO: See above: rename to calculate_crc
-        # TODO: make private
         def crc
             @crc_strategy.crc(@type, @data)
         end
